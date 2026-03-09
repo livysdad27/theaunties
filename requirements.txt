@@ -1,0 +1,27 @@
+# Core
+fastapi==0.115.6
+uvicorn==0.34.0
+apscheduler==3.11.0
+sqlalchemy==2.0.36
+pydantic==2.10.4
+pydantic-settings==2.7.1
+
+# LLM Clients
+anthropic==0.42.0
+google-genai==1.5.0
+
+# Google Drive
+google-api-python-client==2.157.0
+google-auth==2.37.0
+
+# Web Search (source discovery)
+httpx==0.28.1
+
+# Utilities
+python-dotenv==1.0.1
+rich==13.9.4
+click==8.1.8
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.25.0
