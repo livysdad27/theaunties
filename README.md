@@ -64,19 +64,17 @@ cp .env.example .env
 
 ### Run
 
-**Interactive chat (primary interface):**
-
 ```bash
 python -m theaunties chat
 ```
 
-**FastAPI server with scheduler:**
+This starts the Rich terminal chat interface — the primary way to use theAunties. You describe topics, the agent confirms, and research runs are scheduled automatically.
 
-```bash
-python -m theaunties serve
-```
-
-The server runs on `http://127.0.0.1:8000` (localhost only).
+Terminal commands inside the chat:
+- `status` — see active topic and agent state
+- `run` — trigger a manual research run
+- `help` — show available commands
+- `quit` — exit
 
 ### Run Tests
 
@@ -131,7 +129,7 @@ The agent doesn't start fresh every day. It maintains a rolling context per topi
 ```
 theaunties/
 ├── theaunties/
-│   ├── main.py              # FastAPI app entry point
+│   ├── main.py              # FastAPI internal server (scheduler + future web UI)
 │   ├── config.py            # Environment config (pydantic-settings)
 │   ├── agent/
 │   │   ├── core.py          # Research pipeline orchestrator
@@ -161,9 +159,11 @@ theaunties/
 └── requirements.txt         # Pinned dependencies
 ```
 
-## API Endpoints
+## Internal API
 
-When running with `python -m theaunties serve`:
+The FastAPI server runs internally to support the scheduler and future web clients. It is **not** the user-facing interface — the terminal chat is. The server binds to `127.0.0.1:8000` only and is not exposed to the public internet.
+
+You can start it separately with `python -m theaunties serve` if needed for development or testing:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -198,7 +198,7 @@ Running with **stub implementations** for LLM clients, web search, and Google Dr
 ## Tech Stack
 
 - **Python 3.12+** with async/await throughout
-- **FastAPI** — internal API server
+- **FastAPI** — internal server (scheduler host, future web UI)
 - **APScheduler** — cron-style scheduling
 - **SQLAlchemy** — ORM with SQLite
 - **Rich** — terminal UI formatting
