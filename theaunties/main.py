@@ -22,7 +22,7 @@ from theaunties.db.models import Run, Source, Topic
 from theaunties.llm.claude import ClaudeStubClient
 from theaunties.llm.gemini import GeminiStubClient
 from theaunties.llm.router import LLMRouter
-from theaunties.output.gdrive import LocalDocGenerator
+from theaunties.output.gdrive import GoogleDriveDocGenerator, LocalDocGenerator
 from theaunties.scheduler.manager import SchedulerManager
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,17 @@ def _build_components(settings=None):
     collector = DataCollector(http_client=http_client)
     analyzer = Analyzer(llm_router=llm_router)
     context_mgr = ContextManager(context_dir=settings.context_dir)
-    doc_gen = LocalDocGenerator(docs_dir=settings.docs_dir)
+
+    # Doc generator: Google Drive for production, local Markdown for dev/test
+    if not settings.use_stubs and settings.google_drive_folder_id:
+        doc_gen = GoogleDriveDocGenerator(
+            credentials_path=settings.google_drive_credentials_path,
+            folder_id=settings.google_drive_folder_id,
+            user_email=settings.user_email,
+        )
+        logger.info("Using Google Drive doc generator (folder: %s)", settings.google_drive_folder_id)
+    else:
+        doc_gen = LocalDocGenerator(docs_dir=settings.docs_dir)
 
     return {
         "settings": settings,
