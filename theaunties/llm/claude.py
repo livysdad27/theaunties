@@ -66,13 +66,12 @@ class ClaudeStubClient:
 
 
 class ClaudeClient:
-    """Real Claude client using the anthropic SDK.
-
-    Placeholder — activate by setting USE_STUBS=false.
-    """
+    """Real Claude client using the anthropic SDK."""
 
     def __init__(self, api_key: str, model: str = "claude-sonnet-4-6"):
-        self._api_key = api_key
+        import anthropic
+
+        self._client = anthropic.AsyncAnthropic(api_key=api_key)
         self._model = model
 
     @property
@@ -86,6 +85,21 @@ class ClaudeClient:
         temperature: float = 0.7,
         max_tokens: int = 4096,
     ) -> LLMResponse:
-        raise NotImplementedError(
-            "Real Claude client not yet implemented. Set USE_STUBS=true in .env."
+        kwargs: dict = {
+            "model": self._model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        if system_prompt:
+            kwargs["system"] = system_prompt
+
+        response = await self._client.messages.create(**kwargs)
+
+        text = response.content[0].text if response.content else ""
+        return LLMResponse(
+            text=text,
+            model=self._model,
+            input_tokens=response.usage.input_tokens,
+            output_tokens=response.usage.output_tokens,
         )

@@ -56,14 +56,15 @@ class GeminiStubClient:
 
 
 class GeminiClient:
-    """Real Gemini client using google-genai SDK.
-
-    Placeholder — activate by setting USE_STUBS=false.
-    """
+    """Real Gemini client using google-genai SDK."""
 
     def __init__(self, api_key: str, model: str = "gemini-3.1-pro-preview"):
-        self._api_key = api_key
+        from google import genai
+        from google.genai import types
+
+        self._client = genai.Client(api_key=api_key)
         self._model = model
+        self._types = types
 
     @property
     def model_name(self) -> str:
@@ -76,6 +77,26 @@ class GeminiClient:
         temperature: float = 0.7,
         max_tokens: int = 4096,
     ) -> LLMResponse:
-        raise NotImplementedError(
-            "Real Gemini client not yet implemented. Set USE_STUBS=true in .env."
+        config = self._types.GenerateContentConfig(
+            temperature=temperature,
+            max_output_tokens=max_tokens,
+        )
+        if system_prompt:
+            config.system_instruction = system_prompt
+
+        response = await self._client.aio.models.generate_content(
+            model=self._model,
+            contents=prompt,
+            config=config,
+        )
+
+        text = response.text or ""
+        input_tokens = getattr(response.usage_metadata, "prompt_token_count", 0) or 0
+        output_tokens = getattr(response.usage_metadata, "candidates_token_count", 0) or 0
+
+        return LLMResponse(
+            text=text,
+            model=self._model,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
         )
