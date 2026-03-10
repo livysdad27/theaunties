@@ -14,7 +14,7 @@ from theaunties.agent.analyzer import Analyzer
 from theaunties.agent.collector import DataCollector
 from theaunties.agent.context import ContextManager
 from theaunties.agent.core import ResearchAgent
-from theaunties.agent.discovery import SourceDiscovery, WebSearchStub
+from theaunties.agent.discovery import BraveSearchClient, SourceDiscovery, WebSearchStub
 from theaunties.chat.handler import ChatHandler
 from theaunties.config import get_settings
 from theaunties.db.database import get_engine, get_session_factory, init_db
@@ -54,7 +54,13 @@ def _build_components(settings=None):
 
     # Agent components
     http_client = httpx.AsyncClient(timeout=15.0)
-    discovery = SourceDiscovery(llm_router=llm_router, web_search=WebSearchStub(), http_client=http_client)
+
+    if settings.use_stubs:
+        web_search = WebSearchStub()
+    else:
+        web_search = BraveSearchClient(api_key=settings.web_search_api_key, http_client=http_client)
+
+    discovery = SourceDiscovery(llm_router=llm_router, web_search=web_search, http_client=http_client)
     collector = DataCollector(http_client=http_client)
     analyzer = Analyzer(llm_router=llm_router)
     context_mgr = ContextManager(context_dir=settings.context_dir)

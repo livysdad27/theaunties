@@ -114,13 +114,68 @@ class WebSearchStub:
         ]
 
 
+class BraveSearchClient:
+    """Real web search client using the Brave Search API.
+
+    Requires a Brave Search API key (WEB_SEARCH_API_KEY in .env).
+    Free tier includes $5/month credit (~1000 requests).
+    """
+
+    ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
+
+    def __init__(self, api_key: str, http_client: httpx.AsyncClient | None = None):
+        self._api_key = api_key
+        self._http = http_client
+        self._owns_client = http_client is None
+
+    async def search(self, query: str, count: int = 10) -> list[dict]:
+        """Search the web via Brave Search API.
+
+        Returns a list of dicts with 'title', 'url', and 'description' keys,
+        matching the same interface as WebSearchStub.
+        """
+        client = self._http or httpx.AsyncClient(timeout=15.0)
+
+        try:
+            response = await client.get(
+                self.ENDPOINT,
+                params={"q": query, "count": count},
+                headers={
+                    "Accept": "application/json",
+                    "Accept-Encoding": "gzip",
+                    "X-Subscription-Token": self._api_key,
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            results = []
+            for item in data.get("web", {}).get("results", []):
+                results.append({
+                    "title": item.get("title", ""),
+                    "url": item.get("url", ""),
+                    "description": item.get("description", ""),
+                })
+            return results
+
+        except httpx.HTTPStatusError as e:
+            logger.error("Brave Search API error: HTTP %s", e.response.status_code)
+            return []
+        except httpx.RequestError as e:
+            logger.error("Brave Search request failed: %s", e)
+            return []
+        finally:
+            if self._owns_client:
+                await client.aclose()
+
+
 class SourceDiscovery:
     """Discovers and validates public data sources for research topics."""
 
     def __init__(
         self,
         llm_router: LLMRouter,
-        web_search: WebSearchStub | None = None,
+        web_search: WebSearchStub | BraveSearchClient | None = None,
         http_client: httpx.AsyncClient | None = None,
     ):
         self._llm = llm_router
